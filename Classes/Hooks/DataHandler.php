@@ -14,6 +14,8 @@
 
 namespace Causal\IgLdapSsoAuth\Hooks;
 
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
@@ -34,15 +36,12 @@ class DataHandler
      *
      * @param string $operation
      * @param string $table
-     * @param mixed $id
-     * @param array $fieldArray
-     * @param \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
      * @return void
      */
     public function processDatamap_afterDatabaseOperations(
         $operation,
         $table,
-        $id,
+        mixed $id,
         array $fieldArray,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
     )
@@ -55,7 +54,7 @@ class DataHandler
             $id = $pObj->substNEWwithIDs[$id];
         }
 
-        $row = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($table, $id);
+        $row = BackendUtility::getRecord($table, $id);
         if ($row['group_membership'] == Configuration::GROUP_MEMBERSHIP_FROM_MEMBER) {
             $warningMessageKeys = [];
 
@@ -80,7 +79,7 @@ class DataHandler
                     FlashMessage::class,
                     htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:ig_ldap_sso_auth/Resources/Private/Language/locallang_db.xlf:' . $key)),
                     '',
-                    FlashMessage::WARNING,
+                    AbstractMessage::WARNING,
                     true
                 );
                 /** @var FlashMessageService $flashMessageService */

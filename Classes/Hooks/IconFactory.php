@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\Hooks;
 
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -43,7 +44,7 @@ class IconFactory
             && GeneralUtility::inList('be_groups,be_users,fe_groups,fe_users', $table)) {
             if ($row['uid'] ?? false) {
                 // This is the case, e.g., in Backend users module
-                $row = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($table, $row['uid']);
+                $row = BackendUtility::getRecord($table, $row['uid']);
             }
             $isDisabled = $row['disable'] ?? $row['hidden'] ?? false;
             if (!empty($row['tx_igldapssoauth_dn']) && !$isDisabled) {

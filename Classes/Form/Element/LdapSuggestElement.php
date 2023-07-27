@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\Form\Element;
 
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use Causal\IgLdapSsoAuth\Library\Configuration;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Backend\Form\Element\InputTextElement;
@@ -37,16 +38,11 @@ class LdapSuggestElement extends AbstractFormElement
     public function render(): array
     {
         $elementType = $this->data['parameterArray']['fieldConf']['config']['type'];
-        switch ($elementType) {
-            case 'input':
-                $baseElement = GeneralUtility::makeInstance(InputTextElement::class, $this->nodeFactory, $this->data);
-                break;
-            case 'text':
-                $baseElement = GeneralUtility::makeInstance(TextElement::class, $this->nodeFactory, $this->data);
-                break;
-            default:
-                throw new \RuntimeException('Suggest wizard is not configured for type "' . $elementType . '"', 1553522818);
-        }
+        $baseElement = match ($elementType) {
+            'input' => GeneralUtility::makeInstance(InputTextElement::class, $this->nodeFactory, $this->data),
+            'text' => GeneralUtility::makeInstance(TextElement::class, $this->nodeFactory, $this->data),
+            default => throw new \RuntimeException('Suggest wizard is not configured for type "' . $elementType . '"', 1_553_522_818),
+        };
 
         $resultArray = $baseElement->render();
 
@@ -54,7 +50,7 @@ class LdapSuggestElement extends AbstractFormElement
             ? (int)$this->data['databaseRow']['ldap_server'][0]
             : Configuration::SERVER_OPENLDAP;
 
-        if (substr($this->data['fieldName'], -7) === '_basedn') {
+        if (str_ends_with((string) $this->data['fieldName'], '_basedn')) {
             $suggestion = $this->suggestBaseDn();
         } else {
             $suggestion = $this->suggestMappingOrFilter($serverType);
@@ -94,7 +90,7 @@ class LdapSuggestElement extends AbstractFormElement
      */
     protected function suggestBaseDn(): string
     {
-        $bindDnParts = explode(',', $this->data['databaseRow']['ldap_binddn']);
+        $bindDnParts = explode(',', (string) $this->data['databaseRow']['ldap_binddn']);
         $suggestion = count($bindDnParts) > 2
             ? implode(',', array_slice($bindDnParts, -2))
             : '';
@@ -104,20 +100,19 @@ class LdapSuggestElement extends AbstractFormElement
     /**
      * Suggests a mapping or a filter.
      *
-     * @param int $serverType
      * @return string
      */
     protected function suggestMappingOrFilter(int $serverType): string
     {
-        if (substr($this->data['fieldName'], -8) === '_mapping') {
+        if (str_ends_with((string) $this->data['fieldName'], '_mapping')) {
             $prefix = 'mapping_';
-            $table = substr($this->data['fieldName'], 0, -8);
+            $table = substr((string) $this->data['fieldName'], 0, -8);
         } else {
             $prefix = 'filter_';
-            $table = substr($this->data['fieldName'], 0, -7);
+            $table = substr((string) $this->data['fieldName'], 0, -7);
         }
 
-        $templatePath = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('ig_ldap_sso_auth') . 'Resources/Private/Templates/TCA/';
+        $templatePath = ExtensionManagementUtility::extPath('ig_ldap_sso_auth') . 'Resources/Private/Templates/TCA/';
         // Try a specific configuration for this server
         $templateFileName = $templatePath . $prefix . $table . '_' . $serverType . '.txt';
         if (!is_file($templateFileName)) {

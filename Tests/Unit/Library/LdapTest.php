@@ -14,10 +14,12 @@
 
 namespace Causal\IgLdapSsoAuth\Tests\Unit\Library;
 
+use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
+use Causal\IgLdapSsoAuth\Library\Ldap;
 /**
  * Test cases for class \Causal\IgLdapSsoAuth\Library\Ldap.
  */
-class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
+class LdapTest extends UnitTestCase
 {
 
     /**
@@ -25,7 +27,7 @@ class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
      * @dataProvider escapeProvider
      */
     public function parentheseIsEscapedOnce($input, $expected) {
-        $ldap = new \Causal\IgLdapSsoAuth\Library\Ldap();
+        $ldap = new Ldap();
         $actual = $ldap->escapeDnForFilter($input);
         $this->assertEquals($expected, $actual);
     }

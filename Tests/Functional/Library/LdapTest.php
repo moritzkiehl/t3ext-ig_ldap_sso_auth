@@ -14,14 +14,19 @@
 
 namespace Causal\IgLdapSsoAuth\Tests\Functional\Library;
 
+use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
+use Causal\IgLdapSsoAuth\Library\Ldap;
+use Causal\IgLdapSsoAuth\Utility\LdapUtility;
+use Causal\IgLdapSsoAuth\Library\Configuration;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 /**
  * Test cases for class \Causal\IgLdapSsoAuth\Library\Ldap.
  */
-class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
+class LdapTest extends UnitTestCase
 {
 
     /**
-     * @var \Causal\IgLdapSsoAuth\Library\Ldap
+     * @var Ldap
      */
     protected $fixture;
 
@@ -32,14 +37,14 @@ class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
 
     protected function setUp()
     {
-        $ldapUtility = $this->getMock(\Causal\IgLdapSsoAuth\Utility\LdapUtility::class, ['bind', 'search', 'getEntries', 'getFirstEntry', 'getDn']);
-        $ldapUtility->expects($this->any())->method('bind')->will($this->returnCallback([$this, 'bindExecuteCallback']));
-        $ldapUtility->expects($this->any())->method('search')->will($this->returnCallback([$this, 'searchExecuteCallback']));
-        $ldapUtility->expects($this->any())->method('getEntries')->will($this->returnCallback([$this, 'getEntriesExecuteCallback']));
-        $ldapUtility->expects($this->any())->method('getFirstEntry')->will($this->returnCallback([$this, 'getFirstEntryExecuteCallback']));
-        $ldapUtility->expects($this->any())->method('getDn')->will($this->returnCallback([$this, 'getDnExecuteCallback']));
+        $ldapUtility = $this->getMock(LdapUtility::class, ['bind', 'search', 'getEntries', 'getFirstEntry', 'getDn']);
+        $ldapUtility->expects($this->any())->method('bind')->will($this->returnCallback($this->bindExecuteCallback(...)));
+        $ldapUtility->expects($this->any())->method('search')->will($this->returnCallback($this->searchExecuteCallback(...)));
+        $ldapUtility->expects($this->any())->method('getEntries')->will($this->returnCallback($this->getEntriesExecuteCallback(...)));
+        $ldapUtility->expects($this->any())->method('getFirstEntry')->will($this->returnCallback($this->getFirstEntryExecuteCallback(...)));
+        $ldapUtility->expects($this->any())->method('getDn')->will($this->returnCallback($this->getDnExecuteCallback(...)));
 
-        $this->fixture = new \Causal\IgLdapSsoAuth\Library\Ldap();
+        $this->fixture = new Ldap();
         $this->inject($this->fixture, 'ldapUtility', $ldapUtility);
     }
 
@@ -97,7 +102,7 @@ class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
         $GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['ig_ldap_sso_auth'] = serialize([
             'enableFESSO' => 1,
         ]);
-        \Causal\IgLdapSsoAuth\Library\Configuration::initialize('fe', new \Causal\IgLdapSsoAuth\Domain\Model\Configuration());
+        Configuration::initialize('fe', new \Causal\IgLdapSsoAuth\Domain\Model\Configuration());
 
         $result = $this->fixture->validateUser($username, null, 'cn=read-only-admin,dc=example,dc=com', $filter);
         $this->assertEquals($expected, $result);
@@ -205,7 +210,7 @@ class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
         $success = false;
         if ($baseDn === 'cn=read-only-admin,dc=example,dc=com') {
             // WARNING: support only for single condition "(key=value)"
-            list($key, $searchValue) = explode('=', substr($filter, 1, -1), 2);
+            [$key, $searchValue] = explode('=', substr((string) $filter, 1, -1), 2);
             $file = ($key === 'ou') ? 'Groups.json' : 'Users.json';
             $rows = $this->loadData($file);
             unset($rows['count']);
@@ -214,8 +219,8 @@ class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
             foreach ($rows as $row) {
                 $testRow = $row;
                 if (!isset($testRow[$key]) && !empty($testRow['dn'])) {
-                    list($firstSegment,) = explode(',', $testRow['dn'], 2);
-                    list ($firstSegmentKey, $value) = explode('=', $firstSegment, 2);
+                    [$firstSegment, ] = explode(',', (string) $testRow['dn'], 2);
+                    [$firstSegmentKey, $value] = explode('=', $firstSegment, 2);
                     $testRow[$firstSegmentKey] = $value;
                 }
 
@@ -259,9 +264,9 @@ class LdapTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
 
     private function loadData($file)
     {
-        $extPath = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('ig_ldap_sso_auth');
+        $extPath = ExtensionManagementUtility::extPath('ig_ldap_sso_auth');
         $json = file_get_contents($extPath . 'Tests/Functional/Fixtures/' . $file);
-        $data = json_decode($json, true);
+        $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         return $data;
     }
 

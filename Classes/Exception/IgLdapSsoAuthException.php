@@ -14,12 +14,13 @@
 
 namespace Causal\IgLdapSsoAuth\Exception;
 
+use TYPO3\CMS\Core\Exception;
 /**
  * An exception when something is wrong within this extension
  *
  * @author Xavier Perseguers <xavier@causal.ch>
  */
-class IgLdapSsoAuthException extends \TYPO3\CMS\Core\Exception
+class IgLdapSsoAuthException extends Exception
 {
 
 }

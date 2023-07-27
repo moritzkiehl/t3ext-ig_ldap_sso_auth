@@ -25,8 +25,6 @@ class DomainItemsProcFunc
 {
     /**
      * Fills the item list with available sys_domain records.
-     *
-     * @param array $config
      */
     public function getDomains(array &$config): void
     {
@@ -44,14 +42,12 @@ class DomainItemsProcFunc
             ->fetchAllAssociative();
 
         $config['items'] = array_map(
-            static function (array $row) {
-                return [
-                    // displayed value
-                    $row['domainName'],
-                    // stored value
-                    $row['uid']
-                ];
-            },
+            static fn(array $row) => [
+                // displayed value
+                $row['domainName'],
+                // stored value
+                $row['uid']
+            ],
             $rows
         );
     }

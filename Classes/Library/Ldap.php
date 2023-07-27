@@ -14,6 +14,10 @@
 
 namespace Causal\IgLdapSsoAuth\Library;
 
+use TYPO3\CMS\Extbase\Object\Exception;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+use Causal\IgLdapSsoAuth\Exception\UnresolvedPhpDependencyException;
+use TYPO3\CMS\Core\Log\Logger;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -39,9 +43,6 @@ class Ldap
      */
     protected $ldapUtility;
 
-    /**
-     * @param LdapUtility $ldapUtility
-     */
     public function injectLdapUtility(LdapUtility $ldapUtility): void
     {
         $this->ldapUtility = $ldapUtility;
@@ -51,14 +52,14 @@ class Ldap
      * Returns an instance of this class.
      *
      * @return Ldap
-     * @throws \TYPO3\CMS\Extbase\Object\Exception
+     * @throws Exception
      */
     public static function getInstance(): self
     {
-        /** @var \TYPO3\CMS\Extbase\Object\ObjectManager $objectManager */
+        /** @var ObjectManager $objectManager */
         static $objectManager = null;
         if ($objectManager === null) {
-            $objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
+            $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         }
         return $objectManager->get(__CLASS__);
     }
@@ -66,9 +67,8 @@ class Ldap
     /**
      * Initializes a connection to the LDAP server.
      *
-     * @param array $config
      * @return bool
-     * @throws \Causal\IgLdapSsoAuth\Exception\UnresolvedPhpDependencyException when LDAP extension for PHP is not available
+     * @throws UnresolvedPhpDependencyException when LDAP extension for PHP is not available
      */
     public function connect(array $config = []): bool
     {
@@ -133,10 +133,7 @@ class Ldap
     /**
      * Returns the corresponding DN if a given user is provided, otherwise false.
      *
-     * @param string|null $username
      * @param string|null $password User's password. If null password will not be checked
-     * @param string|null $baseDn
-     * @param string|null $filter
      * @return bool|string
      */
     public function validateUser(
@@ -194,12 +191,6 @@ class Ldap
     /**
      * Searches LDAP entries satisfying some filter.
      *
-     * @param string|null $baseDn
-     * @param string|null $filter
-     * @param array $attributes
-     * @param bool $firstEntry
-     * @param int $limit
-     * @param bool $continueLastSearch
      * @return array
      */
     public function search(
@@ -304,7 +295,7 @@ class Ldap
      */
     protected static function getLogger(): LoggerInterface
     {
-        /** @var \TYPO3\CMS\Core\Log\Logger $logger */
+        /** @var Logger $logger */
         static $logger = null;
 
         if ($logger === null) {

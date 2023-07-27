@@ -29,7 +29,6 @@ class TypoScriptUtility
     /**
      * Loads and parses TypoScript from a file.
      *
-     * @param string $filePath
      * @return array
      */
     public static function loadTypoScriptFromFile(string $filePath): array
@@ -42,7 +41,6 @@ class TypoScriptUtility
     /**
      * Loads and parses TypoScript from a string.
      *
-     * @param string $typoScript
      * @return array
      */
     public static function loadTypoScript(string $typoScript): array

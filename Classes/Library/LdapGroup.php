@@ -27,12 +27,7 @@ class LdapGroup
      * Returns LDAP group records based on a list of DNs provided as $membership,
      * taking group's baseDN and filter into consideration.
      *
-     * @param string $baseDn
-     * @param string $filter
-     * @param array $membership
-     * @param array $attributes
      * @param bool $extendedCheck true if groups should be actively checked against LDAP server, false to check against baseDN solely
-     * @param Ldap|null $ldapInstance
      * @return array
      */
     public static function selectFromMembership(
@@ -53,15 +48,15 @@ class LdapGroup
         unset($membership['count']);
 
         foreach ($membership as $groupDn) {
-            if (!empty($baseDn) && strcasecmp(substr($groupDn, -strlen($baseDn)), $baseDn) !== 0) {
+            if (!empty($baseDn) && strcasecmp(substr((string) $groupDn, -strlen($baseDn)), $baseDn) !== 0) {
                 // Group $groupDn does not match the required baseDn for LDAP groups
                 continue;
             }
             if ($extendedCheck) {
                 $ldapGroup = $ldapInstance->search($groupDn, $filter, $attributes);
             } else {
-                $parts = explode(',', $groupDn);
-                list($firstAttribute, $value) = explode('=', $parts[0]);
+                $parts = explode(',', (string) $groupDn);
+                [$firstAttribute, $value] = explode('=', $parts[0]);
                 $firstAttribute = strtolower($firstAttribute);
                 $ldapGroup = [
                     0 => [
@@ -89,12 +84,6 @@ class LdapGroup
     /**
      * Returns groups associated to a given user (identified either by his DN or his uid attribute).
      *
-     * @param string $baseDn
-     * @param string $filter
-     * @param string $userDn
-     * @param string $userUid
-     * @param array $attributes
-     * @param Ldap|null $ldapInstance
      * @return array
      */
     public static function selectFromUser(
@@ -120,13 +109,11 @@ class LdapGroup
     /**
      * Returns the membership information for a given user.
      *
-     * @param array $ldapUser
-     * @param array $mapping
      * @return array|bool
      */
     public static function getMembership(array $ldapUser = [], array $mapping = [])
     {
-        if (isset($mapping['usergroup']) && preg_match("`<([^$]*)>`", $mapping['usergroup'], $attribute)) {
+        if (isset($mapping['usergroup']) && preg_match("`<([^$]*)>`", (string) $mapping['usergroup'], $attribute)) {
             return $ldapUser[strtolower($attribute[1])];
         }
 

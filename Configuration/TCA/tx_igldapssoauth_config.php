@@ -1,4 +1,8 @@
 <?php
+
+use Causal\IgLdapSsoAuth\Tca\DomainItemsProcFunc;
+use Causal\IgLdapSsoAuth\Tca\SiteConfigurationItemsProcFunc;
+use Causal\IgLdapSsoAuth\Library\Configuration;
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:ig_ldap_sso_auth/Resources/Private/Language/locallang_db.xlf:tx_igldapssoauth_config',
@@ -6,7 +10,6 @@ return [
         'sortby' => 'sorting',
         'adminOnly' => 1,
         'rootLevel' => 1,
-        'dividers2tabs' => true,
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
         'cruser_id' => 'cruser_id',
@@ -72,7 +75,7 @@ return [
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectMultipleSideBySide',
-                'itemsProcFunc' => \Causal\IgLdapSsoAuth\Tca\DomainItemsProcFunc::class . '->getDomains',
+                'itemsProcFunc' => DomainItemsProcFunc::class . '->getDomains',
                 'size' => 10,
                 'default' => '',
             ]
@@ -83,7 +86,7 @@ return [
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectMultipleSideBySide',
-                'itemsProcFunc' => \Causal\IgLdapSsoAuth\Tca\SiteConfigurationItemsProcFunc::class . '->getSites',
+                'itemsProcFunc' => SiteConfigurationItemsProcFunc::class . '->getSites',
                 'allowNonIdValues' => true,
                 'size' => 10,
             ]
@@ -97,11 +100,11 @@ return [
                 'items' => [
                     [
                         'LLL:EXT:ig_ldap_sso_auth/Resources/Private/Language/locallang_db.xlf:tx_igldapssoauth_config.ldap_server.I.0',
-                        \Causal\IgLdapSsoAuth\Library\Configuration::SERVER_OPENLDAP
+                        Configuration::SERVER_OPENLDAP
                     ],
                     [
                         'LLL:EXT:ig_ldap_sso_auth/Resources/Private/Language/locallang_db.xlf:tx_igldapssoauth_config.ldap_server.I.1',
-                        \Causal\IgLdapSsoAuth\Library\Configuration::SERVER_ACTIVE_DIRECTORY
+                        Configuration::SERVER_ACTIVE_DIRECTORY
                     ],
                 ],
                 'size' => 1,
@@ -211,12 +214,12 @@ return [
                 'items' => [
                     [
                         'LLL:EXT:ig_ldap_sso_auth/Resources/Private/Language/locallang_db.xlf:tx_igldapssoauth_config.group_membership.I.1',
-                        \Causal\IgLdapSsoAuth\Library\Configuration::GROUP_MEMBERSHIP_FROM_GROUP,
+                        Configuration::GROUP_MEMBERSHIP_FROM_GROUP,
                         'EXT:ig_ldap_sso_auth/Resources/Public/Icons/selicon_group_membership_1.png'
                     ],
                     [
                         'LLL:EXT:ig_ldap_sso_auth/Resources/Private/Language/locallang_db.xlf:tx_igldapssoauth_config.group_membership.I.2',
-                        \Causal\IgLdapSsoAuth\Library\Configuration::GROUP_MEMBERSHIP_FROM_MEMBER,
+                        Configuration::GROUP_MEMBERSHIP_FROM_MEMBER,
                         'EXT:ig_ldap_sso_auth/Resources/Public/Icons/selicon_group_membership_2.png'
                     ],
                 ],

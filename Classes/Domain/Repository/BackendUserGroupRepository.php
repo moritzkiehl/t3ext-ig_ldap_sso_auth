@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\Domain\Repository;
 
+use TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup;
 /**
  * Class BackendUserGroupRepository when willing to work with
  * Extbase-based domain objects for Backend user groups before
@@ -29,7 +30,7 @@ class BackendUserGroupRepository extends AbstractUserGroupRepository
     /**
      * @var string
      */
-    protected $className = \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup::class;
+    protected $className = BackendUserGroup::class;
 
     /**
      * @var string

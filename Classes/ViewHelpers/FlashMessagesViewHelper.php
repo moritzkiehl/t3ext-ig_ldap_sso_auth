@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\ViewHelpers;
 
+use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
@@ -31,22 +32,22 @@ class FlashMessagesViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\FlashMessages
      * @var string The message severity class names
      */
     protected static $classes = [
-        FlashMessage::NOTICE => 'notice',
-        FlashMessage::INFO => 'info',
-        FlashMessage::OK => 'success',
-        FlashMessage::WARNING => 'warning',
-        FlashMessage::ERROR => 'danger'
+        AbstractMessage::NOTICE => 'notice',
+        AbstractMessage::INFO => 'info',
+        AbstractMessage::OK => 'success',
+        AbstractMessage::WARNING => 'warning',
+        AbstractMessage::ERROR => 'danger'
     ];
 
     /**
      * @var string The message severity icon names
      */
     protected static $icons = [
-        FlashMessage::NOTICE => 'lightbulb-o',
-        FlashMessage::INFO => 'info',
-        FlashMessage::OK => 'check',
-        FlashMessage::WARNING => 'exclamation',
-        FlashMessage::ERROR => 'times'
+        AbstractMessage::NOTICE => 'lightbulb-o',
+        AbstractMessage::INFO => 'info',
+        AbstractMessage::OK => 'check',
+        AbstractMessage::WARNING => 'exclamation',
+        AbstractMessage::ERROR => 'times'
     ];
 
     /**
@@ -63,7 +64,7 @@ class FlashMessagesViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\FlashMessages
     public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
     {
         $as = $arguments['as'];
-        $queueIdentifier = isset($arguments['queueIdentifier']) ? $arguments['queueIdentifier'] : null;
+        $queueIdentifier = $arguments['queueIdentifier'] ?? null;
         $flashMessages = $renderingContext->getControllerContext()
             ->getFlashMessageQueue($queueIdentifier)->getAllMessagesAndFlush();
         if ($flashMessages === null || empty($flashMessages)) {
@@ -86,7 +87,6 @@ class FlashMessagesViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\FlashMessages
     }
 
     /**
-     * @param FlashMessage $flashMessage
      * @return string
      */
     protected static function renderFlashMessage(FlashMessage $flashMessage): string
@@ -106,7 +106,7 @@ class FlashMessagesViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\FlashMessages
         $markup[] = '        </div>';
         $markup[] = '        <div class="media-body">';
         if (!empty($messageTitle)) {
-            $markup[] = '            <h4 class="alert-title">' . htmlspecialchars($messageTitle) . '</h4>';
+            $markup[] = '            <h4 class="alert-title">' . htmlspecialchars((string) $messageTitle) . '</h4>';
         }
         $markup[] = '            <p class="alert-message">' . $flashMessage->getMessage() . '</p>';
         $markup[] = '        </div>';

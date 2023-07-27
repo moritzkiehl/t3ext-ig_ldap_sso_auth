@@ -14,6 +14,8 @@
 
 namespace Causal\IgLdapSsoAuth\Domain\Repository;
 
+use TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup;
+use TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
@@ -51,18 +53,17 @@ abstract class AbstractUserGroupRepository
     final public function __construct()
     {
         if (empty($this->className)) {
-            throw new \LogicException(get_class($this) . ' must have a property $className', 1449144226);
+            throw new \LogicException(static::class . ' must have a property $className', 1_449_144_226);
         }
         if (empty($this->tableName)) {
-            throw new \LogicException(get_class($this) . ' must have a property $tableName', 1449144585);
+            throw new \LogicException(static::class . ' must have a property $tableName', 1_449_144_585);
         }
     }
 
     /**
      * Returns a single backend/frontend user group.
      *
-     * @param int $uid
-     * @return \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup|\TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup|null
+     * @return BackendUserGroup|FrontendUserGroup|null
      */
     public function findByUid(int $uid)
     {
@@ -91,7 +92,6 @@ abstract class AbstractUserGroupRepository
      * Sets the given properties on the object.
      *
      * @param AbstractEntity $object The object to set properties on
-     * @param array $row
      * @return $this
      */
     protected function thawProperties(AbstractEntity $object, array $row): self

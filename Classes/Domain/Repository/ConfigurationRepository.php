@@ -56,7 +56,7 @@ class ConfigurationRepository
     /**
      * Returns all available LDAP configurations.
      *
-     * @return \Causal\IgLdapSsoAuth\Domain\Model\Configuration[]
+     * @return Configuration[]
      */
     public function findAll(): array
     {
@@ -79,8 +79,8 @@ class ConfigurationRepository
 
         $configurations = [];
         foreach ($rows as $row) {
-            /** @var \Causal\IgLdapSsoAuth\Domain\Model\Configuration $configuration */
-            $configuration = GeneralUtility::makeInstance(\Causal\IgLdapSsoAuth\Domain\Model\Configuration::class);
+            /** @var Configuration $configuration */
+            $configuration = GeneralUtility::makeInstance(Configuration::class);
             $this->thawProperties($configuration, $row);
             $configurations[] = $configuration;
         }
@@ -92,7 +92,7 @@ class ConfigurationRepository
      * Returns a single LDAP configuration.
      *
      * @param int $uid Primary key to look up
-     * @return \Causal\IgLdapSsoAuth\Domain\Model\Configuration
+     * @return Configuration
      */
     public function findByUid(int $uid): ?Configuration
     {
@@ -112,8 +112,8 @@ class ConfigurationRepository
         }
 
         if (!empty($row)) {
-            /** @var \Causal\IgLdapSsoAuth\Domain\Model\Configuration $configuration */
-            $configuration = GeneralUtility::makeInstance(\Causal\IgLdapSsoAuth\Domain\Model\Configuration::class);
+            /** @var Configuration $configuration */
+            $configuration = GeneralUtility::makeInstance(Configuration::class);
             $this->thawProperties($configuration, $row);
         } else {
             $configuration = null;
@@ -137,8 +137,7 @@ class ConfigurationRepository
     /**
      * Sets the given properties on the object.
      *
-     * @param \Causal\IgLdapSsoAuth\Domain\Model\Configuration $object The object to set properties on
-     * @param array $row
+     * @param Configuration $object The object to set properties on
      * @return $this
      */
     protected function thawProperties(Configuration $object, array $row): self
@@ -186,7 +185,7 @@ class ConfigurationRepository
             $groups = [];
             $groupUids = GeneralUtility::intExplode(',', $row[$fieldName], true);
             if (!empty($groupUids)) {
-                $repository = substr($fieldName, 0, 3) === 'be_'
+                $repository = str_starts_with($fieldName, 'be_')
                     ? static::getBackendUserGroupRepository()
                     : static::getFrontendUserGroupRepository();
                 foreach ($groupUids as $groupUid) {

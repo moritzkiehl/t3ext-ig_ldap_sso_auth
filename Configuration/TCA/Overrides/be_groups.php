@@ -1,5 +1,6 @@
 <?php
-defined('TYPO3_MODE') || defined('TYPO3') || die();
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+defined('TYPO3') || defined('TYPO3') || die();
 
 $tempColumns = [
     'tx_igldapssoauth_dn' => [
@@ -12,5 +13,5 @@ $tempColumns = [
     ],
 ];
 
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('be_groups', $tempColumns);
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('be_groups', 'tx_igldapssoauth_dn');
+ExtensionManagementUtility::addTCAcolumns('be_groups', $tempColumns);
+ExtensionManagementUtility::addToAllTCAtypes('be_groups', 'tx_igldapssoauth_dn');

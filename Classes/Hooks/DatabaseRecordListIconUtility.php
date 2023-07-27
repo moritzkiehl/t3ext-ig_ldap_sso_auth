@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\Hooks;
 
+use TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList;
 use TYPO3\CMS\Backend\RecordList\RecordListGetTableHookInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -36,7 +37,7 @@ class DatabaseRecordListIconUtility implements RecordListGetTableHookInterface
      * @param int $pageId The record's page ID
      * @param string $additionalWhereClause An additional WHERE clause
      * @param string $selectedFieldsList Comma separated list of selected fields
-     * @param \TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList $parentObject
+     * @param DatabaseRecordList $parentObject
      * @return void
      * @see \TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList::getTable()
      */

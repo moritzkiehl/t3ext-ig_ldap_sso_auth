@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\Domain\Repository;
 
+use TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup;
 /**
  * Class FrontendUserGroupRepository when willing to work with
  * Extbase-based domain objects for Frontend user groups before
@@ -29,7 +30,7 @@ class FrontendUserGroupRepository extends AbstractUserGroupRepository
     /**
      * @var string
      */
-    protected $className = \TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup::class;
+    protected $className = FrontendUserGroup::class;
 
     /**
      * @var string

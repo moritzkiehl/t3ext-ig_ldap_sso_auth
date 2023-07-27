@@ -26,9 +26,6 @@ class SetupModuleController
 {
     /**
      * Pre-processes the submitted data.
-     *
-     * @param array $params
-     * @param \TYPO3\CMS\Setup\Controller\SetupModuleController $pObj
      */
     public function preprocessData(array $params, \TYPO3\CMS\Setup\Controller\SetupModuleController $pObj)
     {

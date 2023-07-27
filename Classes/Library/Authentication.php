@@ -14,6 +14,14 @@
 
 namespace Causal\IgLdapSsoAuth\Library;
 
+use Causal\IgLdapSsoAuth\Exception\UnresolvedPhpDependencyException;
+use TYPO3\CMS\Core\Context\Context;
+use Causal\IgLdapSsoAuth\Exception\InvalidUserGroupTableException;
+use TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup;
+use TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup;
+use Causal\IgLdapSsoAuth\Utility\GetGroupsProcessorInterface;
+use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Log\Logger;
 use Causal\IgLdapSsoAuth\Domain\Repository\ConfigurationRepository;
 use Causal\IgLdapSsoAuth\Service\AuthenticationService;
 use Causal\IgLdapSsoAuth\Utility\CompatUtility;
@@ -58,7 +66,6 @@ class Authentication
     /**
      * Sets the authentication service.
      *
-     * @param AuthenticationService $authenticationService
      * @return void
      */
     public static function setAuthenticationService(AuthenticationService $authenticationService)
@@ -86,11 +93,8 @@ class Authentication
      * Authenticates using LDAP and returns a user record or false
      * if operation fails.
      *
-     * @param string $username
-     * @param string|null $password
-     * @param string|null $domain
      * @return bool|array true or array of user info on success, otherwise false
-     * @throws \Causal\IgLdapSsoAuth\Exception\UnresolvedPhpDependencyException when LDAP extension for PHP is not available
+     * @throws UnresolvedPhpDependencyException when LDAP extension for PHP is not available
      */
     public static function ldapAuthenticate(string $username, ?string $password = null, ?string $domain = null)
     {
@@ -108,18 +112,19 @@ class Authentication
             // Set extension configuration from TYPO3 mode (BE/FE).
             static::initializeConfiguration();
 
-            $numberOfConfigurationRecords = count(
+            $numberOfConfigurationRecords = is_countable(GeneralUtility::makeInstance(ConfigurationRepository::class)
+            ->findAll()) ? count(
                 GeneralUtility::makeInstance(ConfigurationRepository::class)
                 ->findAll()
-            );
+            ) : 0;
             if (!empty($domain) && $numberOfConfigurationRecords > 1) {
                 // Domain is set, so check it
-                if (strpos($domain, '.') !== false) {
+                if (str_contains($domain, '.')) {
                     $domain = 'DC=' . implode(',DC=', explode('.', $domain));
                 }
                 $domain = strtolower($domain);
 
-                $configDomain = strtolower(static::$config['users']['basedn']);
+                $configDomain = strtolower((string) static::$config['users']['basedn']);
                 $configDomain = substr($configDomain, strpos($configDomain, 'dc'));
 
                 if ($domain !== $configDomain) {
@@ -172,8 +177,6 @@ class Authentication
     /**
      * Synchronizes a user.
      *
-     * @param string $userdn
-     * @param string|null $username
      * @return array|false
      */
     public static function synchroniseUser(string $userdn, ?string $username = null)
@@ -234,7 +237,7 @@ class Authentication
             // to authenticate is to set a "stop time" (endtime in DB) to the TYPO3 user record or
             // mark it as "disable"
             $typo3_user['deleted'] = 0;
-            if ($typo3_user['endtime'] < $GLOBALS['EXEC_TIME']) {
+            if ($typo3_user['endtime'] < GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp')) {
                 // Reset the stop time since we seem to want to restore a previously deleted account
                 $typo3_user['endtime'] = 0;
             }
@@ -243,13 +246,13 @@ class Authentication
 
             if ((empty($typo3_groups) && Configuration::getValue('DeleteUserIfNoTYPO3Groups'))) {
                 $typo3_user['deleted'] = 1;
-                $typo3_user['endtime'] = $GLOBALS['EXEC_TIME'];
+                $typo3_user['endtime'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
                 static::getLogger()->debug('User record has been deleted because she has no associated TYPO3 groups.', $typo3_user);
             }
             // Delete user if no LDAP groups found.
             if (Configuration::getValue('DeleteUserIfNoLDAPGroups') && !static::$ldapGroups) {
                 $typo3_user['deleted'] = 1;
-                $typo3_user['endtime'] = $GLOBALS['EXEC_TIME'];
+                $typo3_user['endtime'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
                 static::getLogger()->debug('User record has been deleted because she has no LDAP groups.', $typo3_user);
             }
             // Set groups to user.
@@ -261,7 +264,7 @@ class Authentication
 
                 if (Configuration::getValue('forceLowerCaseUsername')) {
                     // Possible enhancement: use \TYPO3\CMS\Core\Charset\CharsetConverter::conv_case instead
-                    $typo3_user['username'] = strtolower($typo3_user['username']);
+                    $typo3_user['username'] = strtolower((string) $typo3_user['username']);
                 }
 
                 // Update TYPO3 user.
@@ -270,8 +273,8 @@ class Authentication
                 $typo3_user['tx_igldapssoauth_from'] = 'LDAP';
 
                 if ((bool)$typo3_user['deleted']
-                    || ($typo3_user['starttime'] > 0 && $typo3_user['starttime'] > $GLOBALS['EXEC_TIME'])
-                    || ($typo3_user['endtime'] > 0 && $typo3_user['endtime'] <= $GLOBALS['EXEC_TIME'])) {
+                    || ($typo3_user['starttime'] > 0 && $typo3_user['starttime'] > GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'))
+                    || ($typo3_user['endtime'] > 0 && $typo3_user['endtime'] <= GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'))) {
                     // User has been updated in TYPO3, but it should not be granted to get an actual session
                     $typo3_user = false;
                 }
@@ -285,7 +288,6 @@ class Authentication
     /**
      * Returns an LDAP user.
      *
-     * @param string|null $dn
      * @return array|null
      */
     protected static function getLdapUser(?string $dn = null): ?array
@@ -299,7 +301,7 @@ class Authentication
             $attributes = [];
         } else {
             $attributes = Configuration::getLdapAttributes(static::$config['users']['mapping']);
-            if (strpos(static::$config['groups']['filter'], '{USERUID}') !== false) {
+            if (str_contains((string) static::$config['groups']['filter'], '{USERUID}')) {
                 $attributes[] = 'uid';
                 $attributes = array_unique($attributes);
             }
@@ -310,7 +312,7 @@ class Authentication
 
         $users = $ldapInstance->search(
             $dn,
-            str_replace('{USERNAME}', '*', static::$config['users']['filter']),
+            str_replace('{USERNAME}', '*', (string) static::$config['users']['filter']),
             $attributes
         );
 
@@ -329,7 +331,7 @@ class Authentication
      * @param array|null $configuration LDAP configuration
      * @param string $groupTable Name of the group table (should normally be either "be_groups" or "fe_groups")
      * @return array|null Array of groups or null if required LDAP groups are missing
-     * @throws \Causal\IgLdapSsoAuth\Exception\InvalidUserGroupTableException
+     * @throws InvalidUserGroupTableException
      */
     public static function getUserGroups(array $ldapUser, array $configuration = null, string $groupTable = ''): ?array
     {
@@ -346,7 +348,7 @@ class Authentication
         $ldapGroups = static::getLdapGroups($ldapUser);
         unset($ldapGroups['count']);
 
-        /** @var \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup[]|\TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup[] $requiredLDAPGroups */
+        /** @var BackendUserGroup[]|FrontendUserGroup[] $requiredLDAPGroups */
         $requiredLDAPGroups = Configuration::getValue('requiredLDAPGroups');
 
         if (empty($ldapGroups)) {
@@ -444,10 +446,10 @@ class Authentication
             foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['ig_ldap_sso_auth']['getGroupsProcessing'] as $className) {
                 /** @var $postProcessor \Causal\IgLdapSsoAuth\Utility\GetGroupsProcessorInterface */
                 $postProcessor = GeneralUtility::makeInstance($className);
-                if ($postProcessor instanceof \Causal\IgLdapSsoAuth\Utility\GetGroupsProcessorInterface) {
+                if ($postProcessor instanceof GetGroupsProcessorInterface) {
                     $postProcessor->getUserGroups($groupTable, $ldapUser, $typo3_groups);
                 } else {
-                    throw new \RuntimeException('Processor ' . get_class($postProcessor) . ' must implement the \\Causal\\IgLdapSsoAuth\\Utility\\GetGroupsProcessorInterface interface', 1431340191);
+                    throw new \RuntimeException('Processor ' . $postProcessor::class . ' must implement the \\Causal\\IgLdapSsoAuth\\Utility\\GetGroupsProcessorInterface interface', 1_431_340_191);
                 }
             }
         }
@@ -457,7 +459,6 @@ class Authentication
     /**
      * Returns LDAP groups associated to a given user.
      *
-     * @param array $ldapUser
      * @return array
      */
     protected static function getLdapGroups(array $ldapUser = []): array
@@ -514,9 +515,6 @@ class Authentication
     /**
      * Returns a TYPO3 user.
      *
-     * @param string $username
-     * @param string $userDn
-     * @param int|null $pid
      * @return array|null
      */
     protected static function getTypo3User(string $username, string $userDn, ?int $pid = null): ?array
@@ -530,7 +528,7 @@ class Authentication
             //       this is catched by TYPO3 anyway
             if (Configuration::getValue('IfUserExist')) {
                 // Ensure every returned record is active
-                $numberOfUsers = count($typo3_users);
+                $numberOfUsers = is_countable($typo3_users) ? count($typo3_users) : 0;
                 for ($i = 0; $i < $numberOfUsers; $i++) {
                     if (!empty($typo3_users[$i]['deleted'])) {
                         // User is deleted => behave as if it did not exist at all!
@@ -553,8 +551,8 @@ class Authentication
 
             $user['pid'] = (int)$pid;
             $user['cruser_id'] = static::getCreationUserId();
-            $user['crdate'] = $GLOBALS['EXEC_TIME'];
-            $user['tstamp'] = $GLOBALS['EXEC_TIME'];
+            $user['crdate'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
+            $user['tstamp'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
             $user['username'] = $username;
             $user['tx_igldapssoauth_dn'] = $userDn;
         }
@@ -566,10 +564,6 @@ class Authentication
      * Returns TYPO3 groups associated to $ldapGroups or create
      * fresh records if they don't exist yet.
      *
-     * @param array $ldapGroups
-     * @param string|null $table
-     * @param int|null $pid
-     * @param array $mapping
      * @return array
      */
     public static function getTypo3Groups(
@@ -588,7 +582,7 @@ class Authentication
 
         foreach ($ldapGroups as $ldapGroup) {
             $groupName = null;
-            if (isset($mapping['title']) &&  preg_match("`<([^$]*)>`", $mapping['title'])) {
+            if (isset($mapping['title']) &&  preg_match("`<([^$]*)>`", (string) $mapping['title'])) {
                 $groupName = static::replaceLdapMarkers($mapping['title'], $ldapGroup);
             }
             $existingTypo3Groups = Typo3GroupRepository::fetch($table, 0, $pid, $ldapGroup['dn'], $groupName);
@@ -599,8 +593,8 @@ class Authentication
                 $typo3Group = Typo3GroupRepository::create($table);
                 $typo3Group['pid'] = (int)$pid;
                 $typo3Group['cruser_id'] = static::getCreationUserId();
-                $typo3Group['crdate'] = $GLOBALS['EXEC_TIME'];
-                $typo3Group['tstamp'] = $GLOBALS['EXEC_TIME'];
+                $typo3Group['crdate'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
+                $typo3Group['tstamp'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
             }
 
             $typo3Groups[] = $typo3Group;
@@ -613,10 +607,7 @@ class Authentication
      * Returns TYPO3 users associated to $ldap_users or create fresh records
      * if they don't exist yet.
      *
-     * @param array $ldapUsers
-     * @param array $mapping
      * @param string $table
-     * @param int|null $pid
      * @return array
      */
     public static function getTypo3Users(
@@ -635,7 +626,7 @@ class Authentication
 
         foreach ($ldapUsers as $ldapUser) {
             $username = null;
-            if (isset($mapping['username']) && preg_match("`<([^$]*)>`", $mapping['username'])) {
+            if (isset($mapping['username']) && preg_match("`<([^$]*)>`", (string) $mapping['username'])) {
                 $username = static::replaceLdapMarkers($mapping['username'], $ldapUser);
             }
             $existingTypo3Users = Typo3UserRepository::fetch($table, 0, $pid, $username, $ldapUser['dn']);
@@ -646,8 +637,8 @@ class Authentication
                 $typo3User = Typo3UserRepository::create($table);
                 $typo3User['pid'] = (int)$pid;
                 $user['cruser_id'] = static::getCreationUserId();
-                $typo3User['crdate'] = $GLOBALS['EXEC_TIME'];
-                $typo3User['tstamp'] = $GLOBALS['EXEC_TIME'];
+                $typo3User['crdate'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
+                $typo3User['tstamp'] = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
             }
 
             $typo3Users[] = $typo3User;
@@ -659,10 +650,7 @@ class Authentication
     /**
      * Merges a user from LDAP and from TYPO3.
      *
-     * @param array $ldap
-     * @param array $typo3
      * @param array $mapping Parsed mapping definition
-     * @param bool $reportErrors
      * @return array
      * @see \Causal\IgLdapSsoAuth\Library\Configuration::parseMapping()
      */
@@ -678,7 +666,7 @@ class Authentication
 
         // Process every field (except "usergroup" and "parentGroup") which is not a TypoScript definition
         foreach ($mapping as $field => $value) {
-            if (substr($field, -1) !== '.') {
+            if (!str_ends_with($field, '.')) {
                 if ($field !== 'usergroup' && $field !== 'parentGroup') {
                     try {
                         $out = static::mergeSimple($ldap, $out, $field, $value);
@@ -710,17 +698,17 @@ class Authentication
             // Advanced stdWrap methods require a valid $GLOBALS['TSFE'] => create the most lightweight one
             $pageId = $typo3['pid'];
             // Use SiteFinder to get a Site object for the current page tree
-            $siteFinder = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Site\SiteFinder::class);
+            $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
             try {
                 $currentSite = $siteFinder->getSiteByPageId($pageId);
-            } catch (SiteNotFoundException $e) {
+            } catch (SiteNotFoundException) {
                 $allSites = $siteFinder->getAllSites();
                 $currentSite = reset($allSites);
                 $pageId = $currentSite->getRootPageId();
             }
 
             // Context is a singleton, so we can get the current Context by instantiation
-            $currentContext = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
+            $currentContext = GeneralUtility::makeInstance(Context::class);
 
             $typoBranch = (new Typo3Version())->getBranch();
             if (version_compare($typoBranch, '11.5', '>=')) {
@@ -775,10 +763,6 @@ class Authentication
     /**
      * Merges a field from LDAP into a TYPO3 record.
      *
-     * @param array $ldap
-     * @param array $typo3
-     * @param string $field
-     * @param string $value
      * @return array Modified $typo3 array
      * @throws \UnexpectedValueException
      */
@@ -788,10 +772,10 @@ class Authentication
         if (preg_match("`{([^$]*)}`", $value, $matches)) {
             switch ($value) {
                 case '{DATE}':
-                    $mappedValue = $GLOBALS['EXEC_TIME'];
+                    $mappedValue = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
                     break;
                 case '{RAND}':
-                    $mappedValue = rand();
+                    $mappedValue = random_int(0, mt_getrandmax());
                     break;
                 default:
                     $mappedValue = '';
@@ -799,11 +783,11 @@ class Authentication
                     $hookParameters = [];
 
                     foreach ($parameters as $parameter) {
-                        list($parameterKey, $parameterValue) = explode('|', $parameter, 2);
+                        [$parameterKey, $parameterValue] = explode('|', $parameter, 2);
                         $hookParameters[trim($parameterKey)] = $parameterValue;
                     }
                     if (empty($hookParameters['hookName'])) {
-                        throw new \UnexpectedValueException(sprintf('Custom marker hook parameter "hookName" is undefined: %s', $matches[0]), 1430138379);
+                        throw new \UnexpectedValueException(sprintf('Custom marker hook parameter "hookName" is undefined: %s', $matches[0]), 1_430_138_379);
                     }
                     $hookName = $hookParameters['hookName'];
                     $ldapAttributes = Configuration::getLdapAttributes([$value]);
@@ -814,7 +798,7 @@ class Authentication
 
                         $_procObj = GeneralUtility::makeInstance($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['ig_ldap_sso_auth']['extraMergeField'][$hookName]);
                         if (!is_callable([$_procObj, 'extraMerge'])) {
-                            throw new \UnexpectedValueException(sprintf('Custom marker hook "%s" does not have a method "extraMerge"', $hookName), 1430140817);
+                            throw new \UnexpectedValueException(sprintf('Custom marker hook "%s" does not have a method "extraMerge"', $hookName), 1_430_140_817);
                         }
                         $mappedValue = $_procObj->extraMerge($field, $typo3, $ldap, $ldapAttributes, $hookParameters);
                     }
@@ -865,7 +849,7 @@ class Authentication
         preg_match_all('/<(.+?)>/', $markerString, $matches);
 
         foreach ($matches[0] as $index => $fullMatchedMarker) {
-            $ldapProperty = strtolower($matches[1][$index]);
+            $ldapProperty = strtolower((string) $matches[1][$index]);
 
             if (isset($ldapData[$ldapProperty])) {
                 $ldapValue = $ldapData[$ldapProperty];
@@ -884,7 +868,6 @@ class Authentication
     /**
      * Returns an array of RDNs from a given DN.
      *
-     * @param string $dn
      * @param int $limit
      * @return array
      */
@@ -935,7 +918,7 @@ class Authentication
      */
     protected static function getLogger(): LoggerInterface
     {
-        /** @var \TYPO3\CMS\Core\Log\Logger $logger */
+        /** @var Logger $logger */
         static $logger = null;
 
         if ($logger === null) {

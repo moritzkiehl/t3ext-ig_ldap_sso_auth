@@ -14,6 +14,12 @@
 
 namespace Causal\IgLdapSsoAuth\Domain\Repository;
 
+use TYPO3\CMS\Core\Core\Bootstrap;
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup;
+use TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup;
+use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashInterface;
+use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use Causal\IgLdapSsoAuth\Utility\CompatUtility;
 use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -43,11 +49,11 @@ class Typo3UserRepository
     public static function create(string $table): array
     {
         if (!GeneralUtility::inList('be_users,fe_users', $table)) {
-            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1404891582);
+            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1_404_891_582);
         }
 
         if (empty($GLOBALS['TCA'][$table])) {
-            $bootstrap = \TYPO3\CMS\Core\Core\Bootstrap::getInstance();
+            $bootstrap = Bootstrap::getInstance();
             if (is_callable([$bootstrap, 'loadCachedTca'])) {
                 $bootstrap->loadCachedTca();
             } else {
@@ -80,8 +86,6 @@ class Typo3UserRepository
      * in a given storage folder (pid).
      *
      * @param string $table Either 'be_users' or 'fe_users'
-     * @param int $uid
-     * @param int|null $pid
      * @param string $username
      * @param string $dn
      * @return array Array of user records
@@ -96,7 +100,7 @@ class Typo3UserRepository
     ): array
     {
         if (!GeneralUtility::inList('be_users,fe_users', $table)) {
-            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1404891636);
+            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1_404_891_636);
         }
 
         $users = [];
@@ -167,14 +171,13 @@ class Typo3UserRepository
      * with all columns.
      *
      * @param string $table Either 'be_users' or 'fe_users'
-     * @param array $data
      * @return array The new record
      * @throws InvalidUserTableException
      */
     public static function add(string $table, array $data = []): array
     {
         if (!GeneralUtility::inList('be_users,fe_users', $table)) {
-            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1404891712);
+            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1_404_891_712);
         }
 
         $tableConnection = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -216,14 +219,13 @@ class Typo3UserRepository
      * Updates a BE/FE user in the database and returns a success flag.
      *
      * @param string $table Either 'be_users' or 'fe_users'
-     * @param array $data
      * @return bool true on success, otherwise false
      * @throws InvalidUserTableException
      */
     public static function update(string $table, array $data = []): bool
     {
         if (!GeneralUtility::inList('be_users,fe_users', $table)) {
-            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1404891732);
+            throw new InvalidUserTableException('Invalid table "' . $table . '"', 1_404_891_732);
         }
 
         $cleanData = $data;
@@ -294,7 +296,7 @@ class Typo3UserRepository
                 ->set($GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'], 1);
 
             if (isset($GLOBALS['TCA'][$table]['ctrl']['tstamp'])) {
-                $queryBuilder->set($GLOBALS['TCA'][$table]['ctrl']['tstamp'], $GLOBALS['EXEC_TIME']);
+                $queryBuilder->set($GLOBALS['TCA'][$table]['ctrl']['tstamp'], GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'));
             }
 
             $queryBuilder->execute();
@@ -348,7 +350,7 @@ class Typo3UserRepository
                 ->set($GLOBALS['TCA'][$table]['ctrl']['delete'], 1);
 
             if (isset($GLOBALS['TCA'][$table]['ctrl']['tstamp'])) {
-                $queryBuilder->set($GLOBALS['TCA'][$table]['ctrl']['tstamp'], $GLOBALS['EXEC_TIME']);
+                $queryBuilder->set($GLOBALS['TCA'][$table]['ctrl']['tstamp'], GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'));
             }
 
             $queryBuilder->execute();
@@ -368,8 +370,6 @@ class Typo3UserRepository
     /**
      * Sets the user groups for a given TYPO3 user.
      *
-     * @param array $typo3User
-     * @param array $typo3Groups
      * @param string $table The TYPO3 table holding the user groups
      * @return array
      */
@@ -383,7 +383,7 @@ class Typo3UserRepository
             }
         }
 
-        /** @var \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup[]|\TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup[] $assignGroups */
+        /** @var BackendUserGroup[]|FrontendUserGroup[] $assignGroups */
         $assignGroups = Configuration::getValue('assignGroups');
         foreach ($assignGroups as $group) {
             if (!in_array($group->getUid(), $groupUid)) {
@@ -418,7 +418,7 @@ class Typo3UserRepository
             }
         }
 
-        /** @var \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup[]|\TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup[] $administratorGroups */
+        /** @var BackendUserGroup[]|FrontendUserGroup[] $administratorGroups */
         $administratorGroups = Configuration::getValue('updateAdminAttribForGroups');
         if (!empty($administratorGroups)) {
             $typo3User['admin'] = 0;
@@ -438,7 +438,6 @@ class Typo3UserRepository
     /**
      * Processes the username according to current configuration.
      *
-     * @param string $username
      * @return string
      */
     public static function setUsername(string $username): string
@@ -457,13 +456,13 @@ class Typo3UserRepository
      */
     public static function setRandomPassword(): string
     {
-        /** @var \TYPO3\CMS\Saltedpasswords\Salt\SaltInterface $instance */
+        /** @var PasswordHashInterface $instance */
         $instance = null;
-        if (\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('saltedpasswords')) {
-            $instance = \TYPO3\CMS\Saltedpasswords\Salt\SaltFactory::getSaltingInstance(null, CompatUtility::getTypo3Mode());
+        if (ExtensionManagementUtility::isLoaded('saltedpasswords')) {
+            $instance = PasswordHashFactory::getSaltingInstance(null, CompatUtility::getTypo3Mode());
         }
         $password = GeneralUtility::makeInstance(Random::class)->generateRandomBytes(16);
-        $password = $instance ? $instance->getHashedPassword($password) : md5($password);
+        $password = $instance ? $instance->getHashedPassword($password) : md5((string) $password);
         return $password;
     }
 }

@@ -14,6 +14,7 @@
 
 namespace Causal\IgLdapSsoAuth\Utility;
 
+use TYPO3\CMS\Core\Charset\CharsetConverter;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Causal\IgLdapSsoAuth\Exception\InvalidHostnameException;
 use Causal\IgLdapSsoAuth\Exception\UnresolvedPhpDependencyException;
@@ -45,12 +46,12 @@ use Causal\IgLdapSsoAuth\Exception\UnresolvedPhpDependencyException;
  */
 class LdapUtility
 {
-    const PAGE_SIZE = 100;
+    final public const PAGE_SIZE = 100;
 
     /**
      * Only used if pagination fails to be initialized
      */
-    const MAX_ENTRIES = 500;
+    final public const MAX_ENTRIES = 500;
 
     /**
      * LDAP Server charset
@@ -107,14 +108,8 @@ class LdapUtility
     /**
      * Connects to an LDAP server.
      *
-     * @param string|null $host
-     * @param int|null $port
      * @param int|null $protocol Not used anymore, always 3 for LDAP v3
-     * @param string|null $characterSet
      * @param string $serverType Either 'OpenLDAP' or 'Active Directory'
-     * @param bool $tls
-     * @param bool $ssl
-     * @param bool $tlsReqcert
      * @return bool true if connection succeeded.
      * @throws UnresolvedPhpDependencyException when LDAP extension for PHP is not available
      */
@@ -135,7 +130,7 @@ class LdapUtility
 
         // Valid if php load ldap module.
         if (!extension_loaded('ldap')) {
-            throw new UnresolvedPhpDependencyException('Your PHP version seems to lack LDAP support. Please install/activate the extension.', 1409566275);
+            throw new UnresolvedPhpDependencyException('Your PHP version seems to lack LDAP support. Please install/activate the extension.', 1_409_566_275);
         }
 
         // Connect to ldap server.
@@ -152,7 +147,7 @@ class LdapUtility
                 if ($matches[1] === 'ldaps') {
                     $errorMessage .= ' Since you obviously want a SSL connection, please tick the "Use SSL" checkbox.';
                 }
-                throw new InvalidHostnameException($errorMessage, 1571920049);
+                throw new InvalidHostnameException($errorMessage, 1_571_920_049);
             }
             $scheme = 'ldap://';
         }
@@ -217,7 +212,6 @@ class LdapUtility
     /**
      * Binds to the LDAP server.
      *
-     * @param string|null $dn
      * @param string|nul $password
      * @return bool true if bind succeeded
      */
@@ -298,14 +292,6 @@ class LdapUtility
     /**
      * Performs a search on the LDAP server.
      *
-     * @param string|null $baseDn
-     * @param string|null $filter
-     * @param array $attributes
-     * @param bool $attributesOnly
-     * @param int $sizeLimit
-     * @param int $timeLimit
-     * @param int $dereferenceAliases
-     * @param bool $continueLastSearch
      * @return bool
      * @see http://ca3.php.net/manual/fr/function.ldap-search.php
      */
@@ -383,19 +369,19 @@ class LdapUtility
             // Hook for processing the attributes
             if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['ig_ldap_sso_auth']['attributesProcessing'] ?? null)) {
                 foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['ig_ldap_sso_auth']['attributesProcessing'] as $className) {
-                    /** @var \Causal\IgLdapSsoAuth\Utility\AttributesProcessorInterface $postProcessor */
+                    /** @var AttributesProcessorInterface $postProcessor */
                     $postProcessor = GeneralUtility::makeInstance($className);
-                    if ($postProcessor instanceof \Causal\IgLdapSsoAuth\Utility\AttributesProcessorInterface) {
+                    if ($postProcessor instanceof AttributesProcessorInterface) {
                         $postProcessor->processAttributes($this->connection, $entry, $attributes);
                     } else {
-                        throw new \RuntimeException('Processor ' . get_class($postProcessor) . ' must implement the \\Causal\\IgLdapSsoAuth\\Utility\\AttributesProcessorInterface interface', 1430307683);
+                        throw new \RuntimeException('Processor ' . $postProcessor::class . ' must implement the \\Causal\\IgLdapSsoAuth\\Utility\\AttributesProcessorInterface interface', 1_430_307_683);
                     }
                 }
             }
 
             $tempEntry = [];
             foreach ($attributes as $key => $value) {
-                $tempEntry[strtolower($key)] = $value;
+                $tempEntry[strtolower((string) $key)] = $value;
             }
 
             $entries[] = $tempEntry;
@@ -492,8 +478,6 @@ class LdapUtility
 
     /**
      * Initializes the character set.
-     *
-     * @param string|null $characterSet
      */
     protected function initializeCharacterSet(?string $characterSet = null): void
     {
@@ -514,7 +498,7 @@ class LdapUtility
      */
     protected function convertCharacterSetForArray($arr, string $fromCharacterSet, string $toCharacterSet)
     {
-        /** @var \TYPO3\CMS\Core\Charset\CharsetConverter $csObj */
+        /** @var CharsetConverter $csObj */
         static $csObj = null;
 
         if (!is_array($arr)) {
@@ -525,7 +509,7 @@ class LdapUtility
             if ((isset($GLOBALS['TSFE'])) && (isset($GLOBALS['TSFE']->csConvObj))) {
                 $csObj = $GLOBALS['TSFE']->csConvObj;
             } else {
-                $csObj = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Charset\CharsetConverter::class);
+                $csObj = GeneralUtility::makeInstance(CharsetConverter::class);
             }
         }
 

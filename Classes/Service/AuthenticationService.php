@@ -14,6 +14,9 @@
 
 namespace Causal\IgLdapSsoAuth\Service;
 
+use Causal\IgLdapSsoAuth\Domain\Repository\ConfigurationRepository;
+use TYPO3\CMS\Core\Information\Typo3Version;
+use TYPO3\CMS\Core\Log\Logger;
 use Causal\IgLdapSsoAuth\Utility\CompatUtility;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -37,17 +40,17 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
     /**
      * 200 - authenticated and no more checking needed
      */
-    const STATUS_AUTHENTICATION_SUCCESS_BREAK = 200;
+    final public const STATUS_AUTHENTICATION_SUCCESS_BREAK = 200;
 
     /**
      * 0 - this service was the right one to authenticate the user but it failed
      */
-    const STATUS_AUTHENTICATION_FAILURE_BREAK = 0;
+    final public const STATUS_AUTHENTICATION_FAILURE_BREAK = 0;
 
     /**
      * 100 - just go on. User is not authenticated but there's still no reason to stop
      */
-    const STATUS_AUTHENTICATION_FAILURE_CONTINUE = 100;
+    final public const STATUS_AUTHENTICATION_FAILURE_CONTINUE = 100;
 
     var $prefixId = 'tx_igldapssoauth_sv1'; // Keep class name
     var $scriptRelPath = 'Classes/Service/AuthenticationService.php'; // Path to this script relative to the extension dir.
@@ -93,8 +96,8 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
             return $user;
         }
 
-        /** @var \Causal\IgLdapSsoAuth\Domain\Repository\ConfigurationRepository $configurationRepository */
-        $configurationRepository = GeneralUtility::makeInstance(\Causal\IgLdapSsoAuth\Domain\Repository\ConfigurationRepository::class);
+        /** @var ConfigurationRepository $configurationRepository */
+        $configurationRepository = GeneralUtility::makeInstance(ConfigurationRepository::class);
         $configurationRecords = $configurationRepository->findAll();
 
         if (empty($configurationRecords)) {
@@ -146,7 +149,7 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
             if (!$userRecordOrIsValid && $this->login['status'] === 'login' && $this->login['uident']) {
 
                 // Configuration of authentication service.
-                $typo3Branch = (new \TYPO3\CMS\Core\Information\Typo3Version())->getBranch();
+                $typo3Branch = (new Typo3Version())->getBranch();
                 $loginSecurityLevel = version_compare($typo3Branch, '11.0', '>')
                     ? 'normal'
                     : $GLOBALS['TYPO3_CONF_VARS'][$typo3Mode]['loginSecurityLevel'];
@@ -158,12 +161,12 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
                         $message = "ig_ldap_sso_auth error: current login security level '" . $loginSecurityLevel . "' is not supported.";
                         $message .= " Try to use 'normal' or 'rsa' (highly recommended): ";
                         $message .= "\$GLOBALS['TYPO3_CONF_VARS']['" . $typo3Mode . "']['loginSecurityLevel'] = 'rsa';";
-                        throw new UnsupportedLoginSecurityLevelException($message, 1324313489);
+                        throw new UnsupportedLoginSecurityLevelException($message, 1_324_313_489);
                     }
                 }
 
                 // normal case
-                $password = isset($this->login['uident_text']) ? $this->login['uident_text'] : $this->login['uident'];
+                $password = $this->login['uident_text'] ?? $this->login['uident'];
 
                 try {
                     if ($password !== null) {
@@ -172,7 +175,7 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
                         // Could not decrypt password
                         $userRecordOrIsValid = false;
                     }
-                } catch (UnresolvedPhpDependencyException $e) {
+                } catch (UnresolvedPhpDependencyException) {
                     // Possible known exception: 1409566275, LDAP extension is not available for PHP
                     $userRecordOrIsValid = false;
                 }
@@ -280,8 +283,8 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
                 ? $_SERVER['REDIRECT_REMOTE_USER']
                 : null
             );
-        if (!empty($remoteUser) && function_exists('mb_detect_encoding') && mb_detect_encoding($remoteUser, mb_detect_order(), true) !== 'UTF-8') {
-            $remoteUser = utf8_encode($remoteUser);
+        if (!empty($remoteUser) && function_exists('mb_detect_encoding') && mb_detect_encoding((string) $remoteUser, mb_detect_order(), true) !== 'UTF-8') {
+            $remoteUser = mb_convert_encoding((string) $remoteUser, 'UTF-8', 'ISO-8859-1');
         }
         return $remoteUser;
     }
@@ -293,7 +296,7 @@ class AuthenticationService extends \TYPO3\CMS\Core\Authentication\Authenticatio
      */
     protected static function getLogger(): LoggerInterface
     {
-        /** @var \TYPO3\CMS\Core\Log\Logger $logger */
+        /** @var Logger $logger */
         static $logger = null;
         if ($logger === null) {
             $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);

@@ -14,6 +14,11 @@
 
 namespace Causal\IgLdapSsoAuth\ViewHelpers;
 
+use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -24,7 +29,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  * @package    TYPO3
  * @subpackage ig_ldap_sso_auth
  */
-class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper
+class ConfigurationTableViewHelper extends AbstractViewHelper
 {
     /**
      * @var bool
@@ -56,9 +61,6 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
      * Renders a configuration table.
      *
      * @param array|string $data
-     * @param bool $humanKeyNames
-     * @param int $depth
-     * @param bool &$hasError
      * @return string
      */
     protected function renderTable($data, string $humanKeyNames, int $depth, bool &$hasError): string
@@ -93,13 +95,9 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
     /**
      * Renders a configuration value in a table cell.
      *
-     * @param mixed $value
-     * @param string $key
-     * @param int $depth
-     * @param bool &$hasError
      * @return string
      */
-    protected function renderValueCell($value, string $key, int $depth, bool &$hasError): string
+    protected function renderValueCell(mixed $value, string $key, int $depth, bool &$hasError): string
     {
         if ($key === '__errors') {
             $hasError = true;
@@ -108,10 +106,10 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
             return sprintf('<td>%s</td>', $this->renderTable($value, false, $depth + 1, $hasError));
         }
 
-        /** @var \TYPO3\CMS\Core\Imaging\IconFactory $iconFactory */
+        /** @var IconFactory $iconFactory */
         static $iconFactory = null;
         if ($iconFactory === null) {
-            $iconFactory = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Imaging\IconFactory::class);
+            $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         }
 
         $class = 'value-default';
@@ -126,7 +124,7 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
                 $messageId = 'module_status.messages.disabled';
                 $class = 'value-disabled';
             }
-            $value = $iconFactory->getIcon($icon, \TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL)->render();
+            $value = $iconFactory->getIcon($icon, Icon::SIZE_SMALL)->render();
             $value .=  ' ' . htmlspecialchars($this->translate($messageId));
         } elseif ($depth > 1 && $key === 'status') {
             $label = $value;
@@ -138,10 +136,10 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
                 $class = 'value-error';
                 $hasError = true;
             }
-            $value = $iconFactory->getIcon($icon, \TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL)->render();
-            $value .=  ' ' . htmlspecialchars($label);
-        } elseif ($value instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractEntity) {
-            if ($value instanceof \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup) {
+            $value = $iconFactory->getIcon($icon, Icon::SIZE_SMALL)->render();
+            $value .=  ' ' . htmlspecialchars((string) $label);
+        } elseif ($value instanceof AbstractEntity) {
+            if ($value instanceof BackendUserGroup) {
                 $icon = 'status-user-group-backend';
                 $table = 'be_groups';
             } else {
@@ -162,10 +160,10 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
                 [],
                 null
             );
-            $value = $iconFactory->getIcon($icon, \TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL, $overlay)->render() . ' ' . htmlspecialchars($value->getTitle());
+            $value = $iconFactory->getIcon($icon, Icon::SIZE_SMALL, $overlay)->render() . ' ' . htmlspecialchars((string) $value->getTitle());
             $value = str_replace('<img src=', '<img title="' . htmlspecialchars($options['title']) . '" src=', $value);
         } else {
-            $value = htmlspecialchars($value);
+            $value = htmlspecialchars((string) $value);
         }
 
         return sprintf('<td class="%s">%s</td>', $class, $value);
@@ -174,7 +172,6 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
     /**
      * Returns a meaningful description out of a configuration array key.
      *
-     * @param string $key
      * @return string
      */
     protected function processKey(string $key): string
@@ -185,13 +182,11 @@ class ConfigurationTableViewHelper extends \TYPO3Fluid\Fluid\Core\ViewHelper\Abs
     /**
      * Translates a label.
      *
-     * @param string $id
-     * @param array|null $arguments
      * @return string|null
      */
     protected function translate(string $id, ?array $arguments = null): ?string
     {
         $value = LocalizationUtility::translate($id, 'ig_ldap_sso_auth', $arguments);
-        return $value !== null ? $value : $id;
+        return $value ?? $id;
     }
 }

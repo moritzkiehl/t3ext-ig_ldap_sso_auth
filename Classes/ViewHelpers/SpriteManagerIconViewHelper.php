@@ -14,6 +14,8 @@
 
 namespace Causal\IgLdapSsoAuth\ViewHelpers;
 
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\ViewHelpers\Be\AbstractBackendViewHelper;
 
@@ -51,13 +53,13 @@ class SpriteManagerIconViewHelper extends AbstractBackendViewHelper
         if (!isset($this->arguments['options']['title']) && $this->arguments['uid'] > 0) {
             $this->arguments['options']['title'] = 'id=' . $this->arguments['uid'];
         }
-        /** @var \TYPO3\CMS\Core\Imaging\IconFactory $iconFactory */
-        $iconFactory = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Imaging\IconFactory::class);
-        $html = $iconFactory->getIcon($this->arguments['iconName'], \TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL)->render();
+        /** @var IconFactory $iconFactory */
+        $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
+        $html = $iconFactory->getIcon($this->arguments['iconName'], Icon::SIZE_SMALL)->render();
         if (!empty($this->arguments['options'])) {
             $attributes = '';
             foreach ($this->arguments['options'] as $key => $value) {
-                $attributes .= htmlspecialchars($key) . '="' . htmlspecialchars($value) . '" ';
+                $attributes .= htmlspecialchars((string) $key) . '="' . htmlspecialchars((string) $value) . '" ';
             }
             $html = str_replace('<img src=', '<img ' . $attributes . 'src=', $html);
         }

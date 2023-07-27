@@ -75,7 +75,6 @@ class UserImportUtility
     /**
      * Default constructor.
      *
-     * @param \Causal\IgLdapSsoAuth\Domain\Model\Configuration $configuration
      * @param string $context
      */
     public function __construct(\Causal\IgLdapSsoAuth\Domain\Model\Configuration $configuration, $context)
@@ -126,8 +125,6 @@ class UserImportUtility
     /**
      * Fetches all possible LDAP/AD users for a given configuration and context.
      *
-     * @param bool $continueLastSearch
-     * @param Ldap|null $ldapInstance
      * @return array
      */
     public function fetchLdapUsers(bool $continueLastSearch = false, ?Ldap $ldapInstance = null): array
@@ -164,7 +161,6 @@ class UserImportUtility
     /**
      * Returns true is a previous call to.
      *
-     * @param Ldap|null $ldapInstance
      * @return bool
      * @see fetchLdapUsers() returned a partial result set
      */
@@ -262,9 +258,9 @@ class UserImportUtility
             // Hook for processing the extra data
             if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['ig_ldap_sso_auth']['extraDataProcessing'])) {
                 foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['ig_ldap_sso_auth']['extraDataProcessing'] as $className) {
-                    /** @var \Causal\IgLdapSsoAuth\Utility\ExtraDataProcessorInterface $postProcessor */
+                    /** @var ExtraDataProcessorInterface $postProcessor */
                     $postProcessor = GeneralUtility::makeInstance($className);
-                    if ($postProcessor instanceof \Causal\IgLdapSsoAuth\Utility\ExtraDataProcessorInterface) {
+                    if ($postProcessor instanceof ExtraDataProcessorInterface) {
                         $postProcessor->processExtraData($this->userTable, $user);
                     } else {
                         throw new ImportUsersException(
@@ -272,7 +268,7 @@ class UserImportUtility
                                 'Invalid post-processing class %s. It must implement the \\Causal\\IgLdapSsoAuth\\Utility\\ExtraDataProcessorInterface interface',
                                 $className
                             ),
-                            1414136057
+                            1_414_136_057
                         );
                     }
                 }

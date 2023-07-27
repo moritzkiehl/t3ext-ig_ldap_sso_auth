@@ -1,9 +1,20 @@
 <?php
-defined('TYPO3_MODE') || defined('TYPO3') || die();
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use Causal\IgLdapSsoAuth\Hooks\DatabaseRecordListIconUtility;
+use Causal\IgLdapSsoAuth\Hooks\SetupModuleController;
+use Causal\IgLdapSsoAuth\Hooks\DataHandler;
+use Causal\IgLdapSsoAuth\Task\ImportUsers;
+use Causal\IgLdapSsoAuth\Task\ImportUsersAdditionalFields;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use Causal\IgLdapSsoAuth\Service\AuthenticationService;
+use Causal\IgLdapSsoAuth\Form\Element\LdapSuggestElement;
+use TYPO3\CMS\Extbase\Utility\ExtensionUtility;
+use Causal\IgLdapSsoAuth\Property\TypeConverter\ConfigurationConverter;
+defined('TYPO3') || defined('TYPO3') || die();
 
-(static function (string $_EXTKEY) {
+(static function () {
     // Configuration of authentication service
-    $EXT_CONFIG = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS'][$_EXTKEY] ?? [];
+    $EXT_CONFIG = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['ig_ldap_sso_auth'] ?? [];
 
     // SSO configuration
     if ($EXT_CONFIG['enableFESSO'] ?? false) {
@@ -14,9 +25,9 @@ defined('TYPO3_MODE') || defined('TYPO3') || die();
     }
 
     // Visually change the record icon for FE/BE users and groups
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS'][\TYPO3\CMS\Core\Imaging\IconFactory::class]['overrideIconOverlay'][] = \Causal\IgLdapSsoAuth\Hooks\IconFactory::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS'][IconFactory::class]['overrideIconOverlay'][] = \Causal\IgLdapSsoAuth\Hooks\IconFactory::class;
 
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['getTable'][] = \Causal\IgLdapSsoAuth\Hooks\DatabaseRecordListIconUtility::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['getTable'][] = DatabaseRecordListIconUtility::class;
 
     // Service configuration
     $subTypesArr = [];
@@ -30,7 +41,7 @@ defined('TYPO3_MODE') || defined('TYPO3') || die();
         $subTypesArr[] = 'getUserBE';
         $subTypesArr[] = 'authUserBE';
 
-        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/setup/mod/index.php']['modifyUserDataBeforeSave'][] = \Causal\IgLdapSsoAuth\Hooks\SetupModuleController::class . '->preprocessData';
+        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/setup/mod/index.php']['modifyUserDataBeforeSave'][] = SetupModuleController::class . '->preprocessData';
     }
     if (is_array($subTypesArr)) {
         $subTypesArr = array_unique($subTypesArr);
@@ -38,20 +49,20 @@ defined('TYPO3_MODE') || defined('TYPO3') || die();
     }
 
     // Register hook for \TYPO3\CMS\Core\DataHandling\DataHandler
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][] = \Causal\IgLdapSsoAuth\Hooks\DataHandler::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][] = DataHandler::class;
 
     // Register the import users Scheduler task
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][\Causal\IgLdapSsoAuth\Task\ImportUsers::class] = [
-        'extension' => $_EXTKEY,
-        'title' => 'LLL:EXT:' . $_EXTKEY . '/Resources/Private/Language/locallang.xlf:task.import_users.title',
-        'description' => 'LLL:EXT:' . $_EXTKEY . '/Resources/Private/Language/locallang.xlf:task.import_users.description',
-        'additionalFields' => \Causal\IgLdapSsoAuth\Task\ImportUsersAdditionalFields::class
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][ImportUsers::class] = [
+        'extension' => 'ig_ldap_sso_auth',
+        'title' => 'LLL:EXT:' . 'ig_ldap_sso_auth' . '/Resources/Private/Language/locallang.xlf:task.import_users.title',
+        'description' => 'LLL:EXT:' . 'ig_ldap_sso_auth' . '/Resources/Private/Language/locallang.xlf:task.import_users.description',
+        'additionalFields' => ImportUsersAdditionalFields::class
     ];
 
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addService(
-        $_EXTKEY,
+    ExtensionManagementUtility::addService(
+        'ig_ldap_sso_auth',
         'auth' /* sv type */,
-        \Causal\IgLdapSsoAuth\Service\AuthenticationService::class, /* sv key */
+        AuthenticationService::class, /* sv key */
         [
             'title' => 'Authentication service',
             'description' => 'Authentication service for LDAP and SSO environment.',
@@ -65,19 +76,19 @@ defined('TYPO3_MODE') || defined('TYPO3') || die();
             'os' => '',
             'exec' => '',
 
-            'className' => \Causal\IgLdapSsoAuth\Service\AuthenticationService::class,
+            'className' => AuthenticationService::class,
         ]
     );
 
-    $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1553520893] = [
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1_553_520_893] = [
         'nodeName' => 'ldapSuggest',
         'priority' => 40,
-        'class' => \Causal\IgLdapSsoAuth\Form\Element\LdapSuggestElement::class,
+        'class' => LdapSuggestElement::class,
     ];
 
     // Register type converters
-    \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerTypeConverter(\Causal\IgLdapSsoAuth\Property\TypeConverter\ConfigurationConverter::class);
+    ExtensionUtility::registerTypeConverter(ConfigurationConverter::class);
 
     // User have save doc new button
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addUserTSConfig('options.saveDocNew.tx_igldapssoauth_config=1');
-})('ig_ldap_sso_auth');
+    ExtensionManagementUtility::addUserTSConfig('options.saveDocNew.tx_igldapssoauth_config=1');
+})();

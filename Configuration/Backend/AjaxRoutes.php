@@ -1,4 +1,6 @@
 <?php
+
+use Causal\IgLdapSsoAuth\Controller\ModuleController;
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -11,25 +13,24 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-
 /**
  * Definitions for routes provided by EXT:ig_ldap_sso_auth
  */
 return [
     'ldap_form_update' => [
         'path' => '/ldap/form/update',
-        'target' => \Causal\IgLdapSsoAuth\Controller\ModuleController::class . '::ajaxUpdateForm'
+        'target' => ModuleController::class . '::ajaxUpdateForm'
     ],
     'ldap_search' => [
         'path' => '/ldap/search',
-        'target' => \Causal\IgLdapSsoAuth\Controller\ModuleController::class . '::ajaxSearch'
+        'target' => ModuleController::class . '::ajaxSearch'
     ],
     'ldap_users_import' => [
         'path' => '/ldap/users/import',
-        'target' => \Causal\IgLdapSsoAuth\Controller\ModuleController::class . '::ajaxUsersImport'
+        'target' => ModuleController::class . '::ajaxUsersImport'
     ],
     'ldap_groups_import' => [
         'path' => '/ldap/groups/import',
-        'target' => \Causal\IgLdapSsoAuth\Controller\ModuleController::class . '::ajaxGroupsImport'
+        'target' => ModuleController::class . '::ajaxGroupsImport'
     ],
 ];

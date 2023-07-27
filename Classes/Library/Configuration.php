@@ -32,11 +32,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class Configuration
 {
-    const GROUP_MEMBERSHIP_FROM_GROUP = 1;
-    const GROUP_MEMBERSHIP_FROM_MEMBER = 2;
+    final public const GROUP_MEMBERSHIP_FROM_GROUP = 1;
+    final public const GROUP_MEMBERSHIP_FROM_MEMBER = 2;
 
-    const SERVER_OPENLDAP = 0;
-    const SERVER_ACTIVE_DIRECTORY = 1;
+    final public const SERVER_OPENLDAP = 0;
+    final public const SERVER_ACTIVE_DIRECTORY = 1;
 
     /**
      * @var \Causal\IgLdapSsoAuth\Domain\Model\Configuration
@@ -53,7 +53,6 @@ class Configuration
      * Initializes the configuration class.
      *
      * @param string $mode TYPO3 mode, either 'be' or 'fe'
-     * @param \Causal\IgLdapSsoAuth\Domain\Model\Configuration $configuration
      */
     public static function initialize(
         string $mode,
@@ -80,7 +79,7 @@ class Configuration
                 $site = $siteFinder->getSiteByIdentifier($siteIdentifier);
                 $domains = self::extractHostsFromSite($site);
                 static::$domains = array_merge(static::$domains, $domains);
-            } catch (SiteNotFoundException $e) {
+            } catch (SiteNotFoundException) {
                 // Ignore invalid site identifiers.
             }
         }
@@ -182,8 +181,6 @@ class Configuration
     /**
      * Makes the user mapping.
      *
-     * @param string $mapping
-     * @param string $filter
      * @return array
      */
     protected static function makeUserMapping(string $mapping = '', string $filter = ''): array
@@ -201,7 +198,6 @@ class Configuration
     /**
      * Makes a group mapping.
      *
-     * @param string $mapping
      * @return array
      */
     protected static function makeGroupMapping(string $mapping = ''): array
@@ -220,7 +216,6 @@ class Configuration
     /**
      * Parses a mapping definition.
      *
-     * @param string $mapping
      * @return array
      */
     public static function parseMapping(string $mapping = ''): array
@@ -230,7 +225,7 @@ class Configuration
         // Remove partial definitions
         $keys = array_keys($setup);
         foreach ($keys as $key) {
-            if (substr($key, -1) !== '.') {
+            if (!str_ends_with($key, '.')) {
                 if ($setup[$key] === '') {
                     unset($setup[$key]);
                 }
@@ -243,7 +238,6 @@ class Configuration
     /**
      * Returns the pid (storage folder) to use.
      *
-     * @param array $mapping
      * @return int|null
      */
     public static function getPid(array $mapping = []): ?int
@@ -260,7 +254,6 @@ class Configuration
     /**
      * Returns the LDAP attribute holding the username.
      *
-     * @param string|null $filter
      * @return string
      */
     public static function getUsernameAttribute(?string $filter = null): string
@@ -323,7 +316,7 @@ class Configuration
     {
         $mode = strtolower($mode);
         if (!GeneralUtility::inList('be,fe', $mode)) {
-            throw new \UnexpectedValueException('$mode must be either "be" or "fe"', 1425123719);
+            throw new \UnexpectedValueException('$mode must be either "be" or "fe"', 1_425_123_719);
         }
         static::$mode = $mode;
     }
@@ -342,7 +335,6 @@ class Configuration
      * Returns the configuration value of a given feature or false if
      * the corresponding feature is disabled.
      *
-     * @param string $feature
      * @return mixed|false
      */
     public static function getValue(string $feature)
@@ -351,7 +343,7 @@ class Configuration
             ? static::getBackendConfiguration()
             : static::getFrontendConfiguration();
 
-        return (isset($config[$feature]) ? $config[$feature] : false);
+        return ($config[$feature] ?? false);
     }
 
     /**
@@ -365,13 +357,13 @@ class Configuration
         $ldapAttributes = [];
         if (is_array($mapping)) {
             foreach ($mapping as $field => $attribute) {
-                if (substr($field, -1) === '.') {
+                if (str_ends_with($field, '.')) {
                     // This is a TypoScript configuration
                     continue;
                 }
-                if (preg_match_all('/<(.+?)>/', $attribute, $matches)) {
+                if (preg_match_all('/<(.+?)>/', (string) $attribute, $matches)) {
                     foreach ($matches[1] as $matchedAttribute) {
-                        $ldapAttributes[] = strtolower($matchedAttribute);
+                        $ldapAttributes[] = strtolower((string) $matchedAttribute);
                     }
                 }
             }
@@ -403,7 +395,7 @@ class Configuration
 
         if (is_array($mapping) && !$extended) {
             foreach ($mapping as $field => $attribute) {
-                if (substr($field, -1) === '.') {
+                if (str_ends_with($field, '.')) {
                     $extended = true;
                     break;
                 }
@@ -416,22 +408,15 @@ class Configuration
     /**
      * Returns the type of server.
      *
-     * @param int|null $type
      * @return string
      */
     public static function getServerType(?int $type = null): string
     {
-        switch ($type) {
-            case static::SERVER_OPENLDAP:
-                $server = 'OpenLDAP';
-                break;
-            case static::SERVER_ACTIVE_DIRECTORY:
-                $server = 'Active Directory';
-                break;
-            default:
-                $server = null;
-                break;
-        }
+        $server = match ($type) {
+            static::SERVER_OPENLDAP => 'OpenLDAP',
+            static::SERVER_ACTIVE_DIRECTORY => 'Active Directory',
+            default => null,
+        };
 
         return $server;
     }
@@ -442,7 +427,6 @@ class Configuration
      * - {USERDN}
      * - {USERUID}
      *
-     * @param string $filter
      * @return string
      */
     public static function replaceFilterMarkers(string $filter): string
@@ -454,7 +438,6 @@ class Configuration
     /**
      * Gets the extension configuration array from table tx_igldapssoauth_config.
      *
-     * @param int $uid
      * @return array
      */
     protected static function select(int $uid = 0): array
@@ -477,7 +460,6 @@ class Configuration
      * Extract relevant hosts from a given site configuration.
      * Respects base host and hosts for alternative site languages.
      *
-     * @param Site $site
      * @return string[]
      */
     protected static function extractHostsFromSite(Site $site): array

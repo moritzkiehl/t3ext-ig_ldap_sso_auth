@@ -14,6 +14,9 @@
 
 namespace Causal\IgLdapSsoAuth\Task;
 
+use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
+use TYPO3\CMS\Scheduler\Controller\SchedulerModuleController;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use Causal\IgLdapSsoAuth\Domain\Repository\ConfigurationRepository;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -28,9 +31,8 @@ use TYPO3\CMS\Scheduler\Task\Enumeration\Action;
  * @package    TYPO3
  * @subpackage ig_ldap_sso_auth
  */
-class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
+class ImportUsersAdditionalFields extends AbstractAdditionalFieldProvider
 {
-
     /**
      * Gets additional fields to render in the form to add/edit a task.
      *
@@ -39,16 +41,16 @@ class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
      *
      * @param array $taskInfo Values of the fields from the add/edit task form
      * @param AbstractTask $task The task object being edited. Null when adding a task!
-     * @param \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $schedulerModule Reference to the scheduler backend module
+     * @param SchedulerModuleController $schedulerModule Reference to the scheduler backend module
      * @return array A two dimensional array, array('Identifier' => array('fieldId' => array('code' => '', 'label' => '', 'cshKey' => '', 'cshLabel' => ''))
      */
     public function getAdditionalFields(
         array &$taskInfo,
         $task,
-        \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $schedulerModule
+        SchedulerModuleController $schedulerModule
     )
     {
-        /** @var \Causal\IgLdapSsoAuth\Task\ImportUsers $task */
+        /** @var ImportUsers $task */
         $additionalFields = [];
 
         $isEdit = (string)$schedulerModule->getCurrentAction() === Action::EDIT;
@@ -127,14 +129,10 @@ class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
 
         return $additionalFields;
     }
-
     /**
      * Generates and registers a HTML select field.
      *
      * @param array $taskInfo Values of the fields from the add/edit task form
-     * @param bool $isEdit
-     * @param array $parameters
-     * @param array $additionalFields
      * @return void
      */
     protected function registerSelect(
@@ -163,9 +161,9 @@ class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
 
         // Write the code for the field
         $fieldID = 'task_' . $fieldName;
-        $typo3Branch = class_exists(\TYPO3\CMS\Core\Information\Typo3Version::class)
-            ? (new \TYPO3\CMS\Core\Information\Typo3Version())->getBranch()
-            : TYPO3_branch;
+        $typo3Branch = class_exists(Typo3Version::class)
+            ? (new Typo3Version())->getBranch()
+            : GeneralUtility::makeInstance(Typo3Version::class)->getBranch();
         $cssClass = version_compare($typo3Branch, '11.0', '<') ? 'form-control' : 'form-select';
         if (isset($parameters['css'])) {
             $cssClass .= ' ' . $parameters['css'];
@@ -178,12 +176,12 @@ class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
             if ((string)$taskInfo[$fieldName] === (string)$optionKey) {
                 $selected = ' selected="selected"';
             }
-            if (strpos($label, 'LLL:') === 0) {
-                $optionLabel = htmlspecialchars($languageService->sL($localizationPrefix . substr($label, 4)));
+            if (str_starts_with((string) $label, 'LLL:')) {
+                $optionLabel = htmlspecialchars($languageService->sL($localizationPrefix . substr((string) $label, 4)));
             } else {
-                $optionLabel = htmlspecialchars($label);
+                $optionLabel = htmlspecialchars((string) $label);
             }
-            $fieldCode .= '<option value="' . htmlspecialchars($optionKey) . '"' . $selected . '>' . $optionLabel . '</option>';
+            $fieldCode .= '<option value="' . htmlspecialchars((string) $optionKey) . '"' . $selected . '>' . $optionLabel . '</option>';
         }
 
         $fieldCode .= '</select>';
@@ -195,23 +193,21 @@ class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
             'cshLabel' => $fieldID
         ];
     }
-
     /**
      * Validates the additional fields' values.
      *
      * @param array $submittedData An array containing the data submitted by the add/edit task form
-     * @param \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $schedulerModule Reference to the scheduler backend module
+     * @param SchedulerModuleController $schedulerModule Reference to the scheduler backend module
      * @return bool true if validation was ok (or selected class is not relevant), false otherwise
      */
     public function validateAdditionalFields(
         array &$submittedData,
-        \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $schedulerModule
+        SchedulerModuleController $schedulerModule
     )
     {
         // Since only valid values could be chosen from the selectors, always return true
         return true;
     }
-
     /**
      * Takes care of saving the additional fields' values in the task's object.
      *
@@ -221,14 +217,13 @@ class ImportUsersAdditionalFields implements AdditionalFieldProviderInterface
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task)
     {
-        /** @var \Causal\IgLdapSsoAuth\Task\ImportUsers $task */
+        /** @var ImportUsers $task */
         $task->setMode($submittedData['tx_igldapssoauth_mode']);
         $task->setContext($submittedData['tx_igldapssoauth_context']);
         $task->setConfiguration($submittedData['tx_igldapssoauth_configuration']);
         $task->setMissingUsersHandling($submittedData['tx_igldapssoauth_missinguserhandling']);
         $task->setRestoredUsersHandling($submittedData['tx_igldapssoauth_restoreduserhandling']);
     }
-
     /**
      * Returns the LanguageService.
      *

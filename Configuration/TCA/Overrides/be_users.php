@@ -1,5 +1,6 @@
 <?php
-defined('TYPO3_MODE') || defined('TYPO3') || die();
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+defined('TYPO3') || defined('TYPO3') || die();
 
 $tempColumns = [
     'tx_igldapssoauth_dn' => [
@@ -12,8 +13,8 @@ $tempColumns = [
     ],
 ];
 
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('be_users', $tempColumns);
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('be_users', 'tx_igldapssoauth_dn');
+ExtensionManagementUtility::addTCAcolumns('be_users', $tempColumns);
+ExtensionManagementUtility::addToAllTCAtypes('be_users', 'tx_igldapssoauth_dn');
 
 // Remove password field for LDAP users
 $GLOBALS['TCA']['be_users']['columns']['password']['displayCond'] = 'FIELD:tx_igldapssoauth_dn:REQ:false';

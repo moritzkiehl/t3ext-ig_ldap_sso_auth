@@ -14,13 +14,16 @@
 
 namespace Causal\IgLdapSsoAuth\Tests\Unit\Library;
 
+use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Context\Context;
 use Causal\IgLdapSsoAuth\Library\Authentication;
 use Causal\IgLdapSsoAuth\Library\Configuration;
 
 /**
  * Test cases for class \Causal\IgLdapSsoAuth\Library\Authentication.
  */
-class AuthenticationTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
+class AuthenticationTest extends UnitTestCase
 {
 
     /** @var array */
@@ -222,7 +225,6 @@ EOT;
     public function canMapToCurrentTimestamp()
     {
         // Just to be sure of the actual value
-        $GLOBALS['EXEC_TIME'] = time();
 
         $mapping = <<<EOT
             tstamp = {DATE}
@@ -231,7 +233,7 @@ EOT;
         $mapping = Configuration::parseMapping($mapping);
         $user = Authentication::merge($this->ldapUserFixture, $this->typo3UserFixture, $mapping);
 
-        $this->assertEquals($GLOBALS['EXEC_TIME'], $user['tstamp']);
+        $this->assertEquals(GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'), $user['tstamp']);
     }
 
     /**

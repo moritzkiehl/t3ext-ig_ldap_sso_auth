@@ -39,8 +39,6 @@ class SiteConfigurationItemsProcFunc
 
     /**
      * Fills the item list with pairs of site identifier and host for each available site config.
-     *
-     * @param array $config
      */
     public function getSites(array &$config): void
     {

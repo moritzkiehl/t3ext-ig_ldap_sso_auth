@@ -14,6 +14,9 @@
 
 namespace Causal\IgLdapSsoAuth\Task;
 
+use TYPO3\CMS\Scheduler\Task\AbstractTask;
+use Causal\IgLdapSsoAuth\Utility\UserImportUtility;
+use TYPO3\CMS\Core\Log\Logger;
 use Causal\IgLdapSsoAuth\Domain\Repository\ConfigurationRepository;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -34,7 +37,7 @@ use Causal\IgLdapSsoAuth\Library\Ldap;
  * @package    TYPO3
  * @subpackage ig_ldap_sso_auth
  */
-class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
+class ImportUsers extends AbstractTask
 {
     /**
      * Synchronization context (may be FE, BE or both).
@@ -111,9 +114,9 @@ class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
         $failures = 0;
         foreach ($ldapConfigurations as $configuration) {
             foreach ($executionContexts as $aContext) {
-                /** @var \Causal\IgLdapSsoAuth\Utility\UserImportUtility $importUtility */
+                /** @var UserImportUtility $importUtility */
                 $importUtility = GeneralUtility::makeInstance(
-                    \Causal\IgLdapSsoAuth\Utility\UserImportUtility::class,
+                    UserImportUtility::class,
                     $configuration,
                     $aContext
                 );
@@ -220,7 +223,7 @@ class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
             $tableConnection->rollBack();
             $message = 'Some or all imports failed. Synchronisation was aborted. Check your settings or your network connection';
             $this->getLogger()->error($message);
-            throw new ImportUsersException($message, 1410774015);
+            throw new ImportUsersException($message, 1_410_774_015);
 
         } else {
             // Everything went fine, commit the changes
@@ -255,7 +258,6 @@ class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
     /**
      * Sets the mode.
      *
-     * @param string $mode
      * @return $this
      */
     public function setMode(string $mode): self
@@ -277,7 +279,6 @@ class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
     /**
      * Sets the context parameter.
      *
-     * @param string $context
      * @return $this
      */
     public function setContext(string $context): self
@@ -299,7 +300,6 @@ class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
     /**
      * Sets the configuration.
      *
-     * @param int $configuration
      * @return $this
      */
     public function setConfiguration(int $configuration): self
@@ -399,7 +399,7 @@ class ImportUsers extends \TYPO3\CMS\Scheduler\Task\AbstractTask
      */
     protected function getLogger(): LoggerInterface
     {
-        /** @var \TYPO3\CMS\Core\Log\Logger $logger */
+        /** @var Logger $logger */
         static $logger = null;
         if ($logger === null) {
             $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
