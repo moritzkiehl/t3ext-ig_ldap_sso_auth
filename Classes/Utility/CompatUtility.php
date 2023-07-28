@@ -33,6 +33,9 @@ final class CompatUtility
                     ? 'FE'
                     : 'BE';
             }
+            if (key_exists('interface', $_REQUEST)) {
+                return $_REQUEST['interface'] === 'backend' ? 'BE' : 'FE';
+            }
             // Hopefully TYPO3 v12 will always provide a valid TYPO3_REQUEST, and we
             // won't have to have some magic in the calling method
             return null;
